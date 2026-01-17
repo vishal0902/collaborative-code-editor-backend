@@ -5,9 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "server:dev": "nodemon server.js",
-    "server:dev1": "nodemon serverCollab.js",
-    "server:prod": "node server.js"
+    "server:dev": "nodemon sever.js",
+    "server:prod": "node sever.js"
   },
   "keywords": [],
   "author": "",

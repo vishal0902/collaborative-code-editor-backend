@@ -15,6 +15,7 @@ import { authenticateToken, socketAuth } from './middleware/authjwt.js';
 import runCodeRouter from './routes/runCodeRouter.js';
 import path from "path";
 import { fileURLToPath } from "url";
+import * as Y from 'yjs'
 
 dotenv.config();
 
@@ -23,7 +24,7 @@ dotenv.config();
 
 const app = express()
 export const server = http.createServer(app)
-const io = new Server(server)
+const io = new Server(server, {cors: {origin: "*"}});
 
 
 const PORT = process.env.PORT || 4000;
@@ -43,6 +44,16 @@ dbConnection();
 //   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 // });
 
+const publicPath = path.join(__dirname, "..", "public");
+app.use(express.static(publicPath))
+
+// app.get("/", (req, res) => {
+//   res.sendFile(path.join(publicPath, "index.html"));
+// });
+
+
+
+const rooms = new Map();
 const userToSocketMap = {};
 
 
@@ -59,57 +70,59 @@ const getJoinedClientList = async (roomId) => {
 }
 
 
+
 io.use(socketAuth);
 
 io.on('connection',(socket)=>{
-    console.log('Socket connected', socket.id)
+    // console.log('Socket connected', socket.id)
 
-    socket.on(ACTIONS.JOIN, async ({roomId, username, avatar})=>{
+    socket.on("join-room", async ({roomId, username, avatar}) =>{
         
         
-        console.log(`${username} joined the room: ${roomId}`);
+        // console.log(`${username} joined the room: ${roomId}`);
         
         socket.join(roomId);
-        
+
+        if(!rooms.has(roomId)){
+          rooms.set(roomId, new Y.Doc())
+        }
+
         userToSocketMap[socket.id] = {username, avatar};
         
         const currentlyActiveClients = await getJoinedClientList(roomId);
 
+        io.to(socket.id).emit("save-soketId", {userSocketId: socket.id});
+
         io.to(roomId).emit(ACTIONS.JOINED,{
                 clients: currentlyActiveClients,
                 username,
-                socketId: socket.id,
             })
+        
+        const ydoc = rooms.get(roomId)
 
-
-        // currentlyActiveClients.forEach(({socketId, username})=>{
-        //     io.to(roomId).emit(ACTIONS.JOINED,{
-        //         clients: currentlyActiveClients,
-        //         username: joinedUserName,
-        //         socketId: socket.id,
-        //     })
-        // })
+        const  state = Y.encodeStateAsUpdate(ydoc)
+        
+        socket.emit("yjs-sync", Array.from(state))       
       
     })
 
 
-    socket.on(ACTIONS.CODE_CHANGE,({roomId, code})=>{
-        console.log('receiving on server', code)
-        io.to(roomId).emit(ACTIONS.CODE_CHANGE,{
-            code,
-            socketId: socket.id,
-            username: userToSocketMap[socket.id].username
-        })
+    socket.on("yjs-update", ({ roomId, update }) => {
+    const ydoc = rooms.get(roomId)
+    if (!ydoc) return
+
+    const binaryUpdate = new Uint8Array(update)
+    Y.applyUpdate(ydoc, binaryUpdate)
+    socket.to(roomId).emit("yjs-update", update)
+    
     })
 
-    socket.on(ACTIONS.SYNC_CODE,({code,socketId, roomId})=> {
-        console.log('In sync code', socketId, 'the code to start: ', code);
-        io.to(roomId).emit(ACTIONS.CODE_CHANGE,{
-            code,
-            socketId: socket.id,
-            username: userToSocketMap[socket.id].username
-        })
+
+    socket.on("awareness-update", ({ roomId, update }) => {
+      socket.to(roomId).emit("awareness-update", update)
     })
+
+
 
     socket.on(ACTIONS.CODE_RUNNING, ({username, showOutputSection, roomId, runStatus, data}) =>{
         io.to(roomId).emit(ACTIONS.CODE_RUNNING,({
@@ -132,50 +145,40 @@ io.on('connection',(socket)=>{
             showOutputSection,
         }))
     })
-
-    // socket.on(ACTIONS.DISCONNECTED,({roomId, username})=>{
-    //     socket.to(roomId).emit(ACTIONS.DISCONNECTED,{
-    //             socketId: socket.id,
-    //             username: userToSocketMap[socket.id]
-    //         })
-    //     delete userToSocketMap[socket.id];
-    //     socket.leave();
-    // })
-
-    // socket.on(ACTIONS.LEAVE, ({roomId, username})=> {
-    //     socket.to(roomId).emit(ACTIONS.DISCONNECTED,{
-    //             socketId: socket.id,
-    //             username: userToSocketMap[socket.id]
-    //         })
-    //     delete userToSocketMap[socket.id];
-    //     socket.leave();
-
-    // })
     
-    socket.on('disconnecting',()=> {
-        const currentSocketRooms = [...socket.rooms];
-        
-        console.log('leaving......',userToSocketMap[socket.id], 'socketRooms ', currentSocketRooms)
-        currentSocketRooms.map((roomId)=>{
-            if(roomId === socket.id) return;
-            // console.log({socketId: socket.id, username: userToSocketMap[socket.id].username})
-            socket.to(roomId).emit(ACTIONS.DISCONNECTED,{
-                socketId: socket.id,
-                username: userToSocketMap[socket.id].username
-            })
-        })
-
-        delete userToSocketMap[socket.id];
-        socket.leave();
-    })
-
+    
     socket.on(ACTIONS.CHANGE_LANGUAGE, ({roomId, languageMode}) => {
         io.to(roomId).emit(ACTIONS.CHANGE_LANGUAGE, ({
             languageMode,
             username: userToSocketMap[socket.id].username
         }))
     })
-    
+
+    socket.on('disconnect',()=> {
+        const currentSocketRooms = [...socket.rooms];
+        
+        // console.log( `${userToSocketMap[socket.id].username} has left the room.`)
+
+        socket.broadcast.emit(ACTIONS.DISCONNECTED,{
+                socketId: socket.id,
+                username: userToSocketMap[socket.id].username
+            })
+        
+        // currentSocketRooms.map((roomId)=>{
+        //     if(roomId === socket.id) return;
+        //     console.log({socketId: socket.id, username: userToSocketMap[socket.id].username})
+            
+        //     socket.broadcast(ACTIONS.DISCONNECTED,{
+        //         socketId: socket.id,
+        //         username: userToSocketMap[socket.id].username
+        //     })
+        // })
+
+        delete userToSocketMap[socket.id];
+        socket.leave();
+    })
+
+ 
 
 
     
@@ -249,6 +252,13 @@ app.get("/api/me", authenticateToken, (req, res) => {
   res.json({ user: req.user || null });
 });
 
-server.listen(PORT, () =>{
-    console.log(`Server started running at ${PORT}`)
-})
+// server.listen(PORT, () =>{
+//     console.log(`Server started running at ${PORT}`)
+// })
+
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
+module.exports = server;
