@@ -14,7 +14,6 @@ import User from './models/Users.js';
 import { authenticateToken, socketAuth } from './middleware/authjwt.js';
 import runCodeRouter from './routes/runCodeRouter.js';
 import path from "path";
-import { fileURLToPath } from "url";
 import * as Y from 'yjs'
 
 dotenv.config();
@@ -44,12 +43,6 @@ dbConnection();
 //   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 // });
 
-const publicPath = path.join(__dirname, "..", "public");
-app.use(express.static(publicPath))
-
-// app.get("/", (req, res) => {
-//   res.sendFile(path.join(publicPath, "index.html"));
-// });
 
 
 
@@ -252,13 +245,8 @@ app.get("/api/me", authenticateToken, (req, res) => {
   res.json({ user: req.user || null });
 });
 
-// server.listen(PORT, () =>{
-//     console.log(`Server started running at ${PORT}`)
-// })
+server.listen(PORT, () =>{
+    console.log(`Server started running at ${PORT}`)
+})
 
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
-});
-
-module.exports = server;
