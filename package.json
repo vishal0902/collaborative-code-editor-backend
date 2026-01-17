@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "server:dev": "nodemon server.js",
+    "server:dev1": "nodemon serverCollab.js",
     "server:prod": "node server.js"
   },
   "keywords": [],
@@ -26,7 +27,8 @@
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "yjs": "^13.6.28"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

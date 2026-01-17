@@ -11,7 +11,9 @@ const ACTIONS = {
     REMOVE_CURSOR: 'remove-cursor',
     CHANGE_LANGUAGE: 'change-language',
     CODE_RUNNING: 'code-running',
-    CODE_COMPLETED: 'code-completed'
+    CODE_COMPLETED: 'code-completed',
+    YJS_CODE_UPDATE: 'yjs-code-update',
+    YJS_SYNC_CODE: 'yjs-sync-code'
 }
 
 export default ACTIONS;

@@ -5,9 +5,11 @@ import User from '../models/Users.js';
 export const authenticateToken = async (req, res, next) => {
     try {
         const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+        // console.log('Auth Header:', authHeader);
 
-        if (!token) {
+        const token = authHeader && authHeader.split('Bearer ')[1]; // Bearer TOKEN
+
+        if (!token || token === 'null') {
             return res.status(401).json({ message: 'Access token required' });
         }
 
