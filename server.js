@@ -235,11 +235,11 @@ app.get("/auth/github",
 
 // GitHub OAuth callback
 app.get("/auth/github/callback",
-  passport.authenticate("github", { failureRedirect: `http://localhost:5173/signin` }),
+  passport.authenticate("github", { failureRedirect: `${process.env.CLIENT_URL}/signin` }),
   (req, res) => {
     const token  = req.user.token;
     // res.redirect(`http://localhost:5173/`);
-    res.redirect(`http://localhost:5173/auth/success?token=${token}`);
+    res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}`);
   }
 );
 
