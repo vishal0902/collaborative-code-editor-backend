@@ -27,7 +27,7 @@ runCodeRouter.post("/run", async (req, res) => {
   method: 'POST',
   url: 'https://judge0-ce.p.rapidapi.com/submissions',
   params: {
-    base64_encoded: 'false',
+    base64_encoded: 'true',
     wait: 'true',
     fields: '*'
   },
