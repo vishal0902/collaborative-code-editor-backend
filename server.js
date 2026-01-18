@@ -1,18 +1,18 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import ACTIONS from '../Actions.js';
+import ACTIONS from './Actions.js';
 import dotenv from "dotenv";
 // import authRouter from './middleware/auth.js';
-import dbConnection from '../dbConnection.js';
+import dbConnection from './dbConnection.js';
 import MongoStore from 'connect-mongo';
-import passport from '../middleware/auth.js';
+import passport from './middleware/auth.js';
 import cors from 'cors'
 import session from 'express-session';
-import userAuthRouter from '../routes/userRouter.js';
-import User from '../models/Users.js';
-import { authenticateToken, socketAuth } from '../middleware/authjwt.js';
-import runCodeRouter from '../routes/runCodeRouter.js';
+import userAuthRouter from './routes/userRouter.js';
+import User from './models/Users.js';
+import { authenticateToken, socketAuth } from './middleware/authjwt.js';
+import runCodeRouter from './routes/runCodeRouter.js';
 import path from "path";
 import * as Y from 'yjs'
 
@@ -26,7 +26,7 @@ export const server = http.createServer(app)
 const io = new Server(server, {cors: {origin: "*"}});
 
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 8000;
 const CLIENT_URL = process.env.CLIENT_URL;
 const MONGO_URI = process.env.MONGO_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET;
