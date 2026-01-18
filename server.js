@@ -18,6 +18,16 @@ import * as Y from 'yjs'
 
 dotenv.config();
 
+const DEFAULT_CODE = `// Hey!!! Coders...👋
+// This is a collaborative editor
+// Start coding below
+
+function hello() {
+  console.log("Hello, world!");
+}
+
+hello();
+`
 
 
 
@@ -77,7 +87,14 @@ io.on('connection',(socket)=>{
         socket.join(roomId);
 
         if(!rooms.has(roomId)){
-          rooms.set(roomId, new Y.Doc())
+          // rooms.set(roomId, new Y.Doc())
+
+              const ydoc = new Y.Doc()
+              const yText = ydoc.getText("code")
+
+              yText.insert(0, DEFAULT_CODE)
+
+              rooms.set(roomId, ydoc)
         }
 
         userToSocketMap[socket.id] = {username, avatar};
