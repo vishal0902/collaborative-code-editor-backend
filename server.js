@@ -18,7 +18,7 @@ import * as Y from 'yjs'
 
 dotenv.config();
 
-const DEFAULT_CODE = `// Hey!!! Coders...👋
+const DEFAULT_CODE = `// Hey!!! Coders.
 // This is a collaborative editor
 // Start coding below
 
@@ -66,12 +66,11 @@ const getJoinedClientList = async (roomId) => {
     return Array.from(clients.map((client)=>{
         return {
             socketId: client.id,
-            username: userToSocketMap[client.id].username,
-            avatar: userToSocketMap[client.id].avatar,
+            username: userToSocketMap[client.id]?.username || null,
+            avatar: userToSocketMap[client.id]?.avatar || null,
         }
     })); 
 }
-
 
 
 io.use(socketAuth);
@@ -160,7 +159,7 @@ io.on('connection',(socket)=>{
     socket.on(ACTIONS.CHANGE_LANGUAGE, ({roomId, languageMode}) => {
         io.to(roomId).emit(ACTIONS.CHANGE_LANGUAGE, ({
             languageMode,
-            username: userToSocketMap[socket.id].username
+            username: userToSocketMap[socket.id]?.username || null
         }))
     })
 
@@ -171,7 +170,7 @@ io.on('connection',(socket)=>{
 
         socket.broadcast.emit(ACTIONS.DISCONNECTED,{
                 socketId: socket.id,
-                username: userToSocketMap[socket.id].username
+                username: userToSocketMap[socket.id]?.username || null
             })
         
         // currentSocketRooms.map((roomId)=>{
