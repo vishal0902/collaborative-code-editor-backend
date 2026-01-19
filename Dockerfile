@@ -1,21 +1,22 @@
-# Use a lightweight Node.js version
-FROM node:20-alpine
+# ---------- Build stage ----------
+FROM node:20-alpine AS builder
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package files FIRST to leverage Docker caching.
-# This ensures 'npm install' only runs if dependencies actually change.
 COPY package*.json ./
+RUN npm ci --only=production
 
-# Install dependencies
-RUN npm install --production
-
-# Copy the rest of your application code
 COPY . .
 
-# Expose the port your app runs on (Standard for Koyeb/Render is often 8000 or 3000)
+# ---------- Runtime stage ----------
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app ./
+
 EXPOSE 8000
 
-# Start the application
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

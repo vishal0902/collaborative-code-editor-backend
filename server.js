@@ -2,7 +2,6 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import ACTIONS from './Actions.js';
-import dotenv from "dotenv";
 // import authRouter from './middleware/auth.js';
 import dbConnection from './dbConnection.js';
 import MongoStore from 'connect-mongo';
@@ -16,7 +15,10 @@ import runCodeRouter from './routes/runCodeRouter.js';
 import path from "path";
 import * as Y from 'yjs'
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  await import("dotenv/config");
+}
+
 
 const DEFAULT_CODE = `// Hey!!! Coders.
 // This is a collaborative editor
@@ -42,16 +44,21 @@ const MONGO_URI = process.env.MONGO_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
 
-dbConnection();
-
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-// app.use(express.static(path.join(__dirname, "../frontend/dist")));
+app.get("/health", (_, res) => {
+  res.status(200).send("ok");
+});
 
 
-// app.get("/", (req, res) => {
-//   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-// });
+let initialized = false;
+
+app.use(async (req, res, next) => {
+  if (!initialized) {
+    await dbConnection();
+    initialized = true;
+    console.log("DB connected.")
+  }
+  next();
+});
 
 
 
@@ -223,6 +230,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
       
+
 
 
 
