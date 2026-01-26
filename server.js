@@ -65,6 +65,8 @@ app.use(async (req, res, next) => {
 
 const rooms = new Map();
 const userToSocketMap = {};
+const messageBox = new Map();
+
 
 
 
@@ -75,6 +77,7 @@ const getJoinedClientList = async (roomId) => {
             socketId: client.id,
             username: userToSocketMap[client.id]?.username || null,
             avatar: userToSocketMap[client.id]?.avatar || null,
+            status: userToSocketMap[client.id]?.status || null
         }
     })); 
 }
@@ -103,7 +106,7 @@ io.on('connection',(socket)=>{
               rooms.set(roomId, ydoc)
         }
 
-        userToSocketMap[socket.id] = {username, avatar};
+        userToSocketMap[socket.id] = {username, avatar, status: 'online', color: "#" + Math.floor(Math.random() * 16777215).toString(16)};
         
         const currentlyActiveClients = await getJoinedClientList(roomId);
 
@@ -112,6 +115,7 @@ io.on('connection',(socket)=>{
         io.to(roomId).emit(ACTIONS.JOINED,{
                 clients: currentlyActiveClients,
                 username,
+                chats: [...messageBox]
             })
         
         const ydoc = rooms.get(roomId)
@@ -169,6 +173,39 @@ io.on('connection',(socket)=>{
             username: userToSocketMap[socket.id]?.username || null
         }))
     })
+
+
+    //Online status
+
+    socket.on('user-away', async ({roomId}) => {
+      userToSocketMap[socket.id] = {...userToSocketMap[socket.id], status: 'offline'};
+      const clients = await getJoinedClientList(roomId);
+      socket.to(roomId).emit('user-away', {
+        clients
+      })
+    })
+
+    
+
+    socket.on('user-back', async ({roomId}) => {
+      userToSocketMap[socket.id] = {...userToSocketMap[socket.id], status: 'online'};
+
+      const clients = await getJoinedClientList(roomId);
+      socket.to(roomId).emit('user-back', {
+        clients
+      })
+    })
+
+    
+    //chat box feature
+    
+    socket.on('msg-sent', ({roomId, msg, time}) =>{
+      messageBox.set(time, {userName: userToSocketMap[socket.id].username, color:  userToSocketMap[socket.id].color,  msg, socketId: socket.id});
+      io.to(roomId).emit('msg-broadcast', {
+        chats: [...messageBox]
+      })
+    })
+
 
     socket.on('disconnect',()=> {
         const currentSocketRooms = [...socket.rooms];

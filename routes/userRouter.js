@@ -24,7 +24,7 @@ userAuthRouter.post('/login', async(req, res)=> {
     const {email, password} = req.body;
     const user = await User.findOne({email});
     if(user) {
-        const result = bcrypt.compare(password, user.password);
+        const result = await bcrypt.compare(password, user.password);
         if(result) {
             const token = jwt.sign({id: user._id}, process.env.JWT_SECRET)
             return res.status(200).json(token)
