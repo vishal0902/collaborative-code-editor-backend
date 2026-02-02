@@ -76,6 +76,7 @@ const getJoinedClientList = async (roomId) => {
         return {
             socketId: client.id,
             username: userToSocketMap[client.id]?.username || null,
+            userId: userToSocketMap[client.id]?.userId || null,
             avatar: userToSocketMap[client.id]?.avatar || null,
             status: userToSocketMap[client.id]?.status || null
         }
@@ -88,7 +89,7 @@ io.use(socketAuth);
 io.on('connection',(socket)=>{
     // console.log('Socket connected', socket.id)
 
-    socket.on("join-room", async ({roomId, username, avatar}) =>{
+    socket.on("join-room", async ({roomId, username, userId, avatar}) =>{
         
         
         // console.log(`${username} joined the room: ${roomId}`);
@@ -106,11 +107,11 @@ io.on('connection',(socket)=>{
               rooms.set(roomId, ydoc)
         }
 
-        userToSocketMap[socket.id] = {username, avatar, status: 'online', color: "#" + Math.floor(Math.random() * 16777215).toString(16)};
+        userToSocketMap[socket.id] = {username, userId, avatar, status: 'online', color: "#" + Math.floor(Math.random() * 16777215).toString(16)};
         
         const currentlyActiveClients = await getJoinedClientList(roomId);
 
-        io.to(socket.id).emit("save-soketId", {userSocketId: socket.id});
+        io.to(socket.id).emit("save-userId", {currentUserId: userId});
 
         io.to(roomId).emit(ACTIONS.JOINED,{
                 clients: currentlyActiveClients,
@@ -200,7 +201,7 @@ io.on('connection',(socket)=>{
     //chat box feature
     
     socket.on('msg-sent', ({roomId, msg, time}) =>{
-      messageBox.set(time, {userName: userToSocketMap[socket.id].username, color:  userToSocketMap[socket.id].color,  msg, socketId: socket.id});
+      messageBox.set(time, {userName: userToSocketMap[socket.id].username, color:  userToSocketMap[socket.id].color,  msg, userId: userToSocketMap[socket.id].userId });
       io.to(roomId).emit('msg-broadcast', {
         chats: [...messageBox]
       })

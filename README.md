@@ -168,3 +168,4 @@ The API returns appropriate HTTP status codes and error messages:
 - All user passwords are automatically hashed before saving
 - The server automatically connects to MongoDB on startup
 - CORS is configured to allow requests from the specified client URL
+
