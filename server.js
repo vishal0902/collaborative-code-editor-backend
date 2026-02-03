@@ -43,6 +43,9 @@ const CLIENT_URL = process.env.CLIENT_URL;
 const MONGO_URI = process.env.MONGO_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
+const rooms = new Map();
+const userToSocketMap = {};
+let messageBox = [];
 
 app.get("/health", (_, res) => {
   res.status(200).send("ok");
@@ -63,9 +66,6 @@ app.use(async (req, res, next) => {
 
 
 
-const rooms = new Map();
-const userToSocketMap = {};
-const messageBox = new Map();
 
 
 
@@ -116,7 +116,7 @@ io.on('connection',(socket)=>{
         io.to(roomId).emit(ACTIONS.JOINED,{
                 clients: currentlyActiveClients,
                 username,
-                chats: [...messageBox]
+                chats: messageBox?.filter(item => item.roomId === roomId)
             })
         
         const ydoc = rooms.get(roomId)
@@ -201,32 +201,50 @@ io.on('connection',(socket)=>{
     //chat box feature
     
     socket.on('msg-sent', ({roomId, msg, time}) =>{
-      messageBox.set(time, {userName: userToSocketMap[socket.id].username, color:  userToSocketMap[socket.id].color,  msg, userId: userToSocketMap[socket.id].userId });
+      // messageBox.set(time, {userName: userToSocketMap[socket.id].username, color:  userToSocketMap[socket.id].color,  msg, userId: userToSocketMap[socket.id].userId });
+      messageBox.push({
+        time,
+        roomId,  
+        userName: userToSocketMap[socket.id].username, 
+        color:  userToSocketMap[socket.id].color,  
+        msg,
+        userId: userToSocketMap[socket.id].userId });
+      
       io.to(roomId).emit('msg-broadcast', {
-        chats: [...messageBox]
+        chats: messageBox?.filter(item => item.roomId === roomId)
       })
     })
 
 
-    socket.on('disconnect',()=> {
-        const currentSocketRooms = [...socket.rooms];
-        
-        // console.log( `${userToSocketMap[socket.id].username} has left the room.`)
+    socket.on('disconnecting', () => {
+      
+            const currentSocketRooms = [...socket.rooms];
+    
+            currentSocketRooms.map((roomId)=>{
+              if(roomId === socket.id) return;
+              
+              const socketsInRoom = io.sockets.adapter.rooms.get(roomId);
+              const socketCount = socketsInRoom.size;
 
-        socket.broadcast.emit(ACTIONS.DISCONNECTED,{
-                socketId: socket.id,
-                username: userToSocketMap[socket.id]?.username || null
-            })
-        
-        // currentSocketRooms.map((roomId)=>{
-        //     if(roomId === socket.id) return;
-        //     console.log({socketId: socket.id, username: userToSocketMap[socket.id].username})
-            
-        //     socket.broadcast(ACTIONS.DISCONNECTED,{
+              if(socketCount === 1) {
+                messageBox = messageBox?.filter(item => item.roomId !== roomId)
+              }
+
+              socket.to(roomId).emit(ACTIONS.DISCONNECTED,{
+                  socketId: socket.id,
+                  username: userToSocketMap[socket.id].username || null
+              })
+        })
+
+    })
+
+
+    socket.on('disconnect',()=> {
+
+        // socket.broadcast.emit(ACTIONS.DISCONNECTED,{
         //         socketId: socket.id,
-        //         username: userToSocketMap[socket.id].username
+        //         username: userToSocketMap[socket.id]?.username || null
         //     })
-        // })
 
         delete userToSocketMap[socket.id];
         socket.leave();

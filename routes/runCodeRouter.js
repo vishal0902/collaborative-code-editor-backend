@@ -11,7 +11,7 @@ runCodeRouter.post("/run", async (req, res) => {
   const JUDGE0_API_KEY = process.env.JUDGE0_API_KEY
 
   const { language, code, stdin } = req.body;
-  console.log(code, language);
+  // console.log(code, language);
   
 
     const languageMap = {
